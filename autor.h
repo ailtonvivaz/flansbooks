@@ -66,7 +66,7 @@ public:
 
 	}
 
-	Autor buscarAutor(int id){
+	Autor buscar(int id){
 
 		Arquivo arquivo(getFile());
 

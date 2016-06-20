@@ -25,12 +25,10 @@ public:
 
 	int salvar(){
 
-		Arquivo arquivo(getFile());
 		mId = 0;
 
+		Arquivo arquivo(getFile());
 		ifstream& iFile = arquivo.getIFile();
-
-		iFile.seekg(0);
 
 		Categoria aux;
 
@@ -57,22 +55,18 @@ public:
 
 	}
 
-	Categoria buscarCategoria(int id){
+	void buscar(int id){
 
 		Arquivo arquivo(getFile());
-
 		ifstream& iFile = arquivo.getIFile();
-
-		iFile.seekg(0);
 
 		while(iFile.good()){
 			ler(arquivo);
 			if (!iFile.good()) break;
-			if (getId() == id){
-				arquivo.close();
-				return *this;
-			}
+			if (getId() == id) break;
 		}
+
+		arquivo.close();
 
 	}
 	

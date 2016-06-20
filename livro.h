@@ -19,7 +19,8 @@ protected:
 	string mEditora;
 	int mAno;
 	float mPreco;
-	vector<Autor> mAutores;	
+	vector<Autor> mAutores;
+	int mTipo;
 
 public:
 	Livro(){};
@@ -46,7 +47,7 @@ public:
 
 	vector<Autor> getAutores(){return mAutores;}
 	
-	void salvar(int tipo = 1, int anoEscolar = 0){
+	void salvar(int tipo = 1){
 
 		Arquivo arquivo(getFile());
 
@@ -57,7 +58,6 @@ public:
 		arquivo.salvar(mPreco);
 
 		arquivo.salvar(tipo);
-		arquivo.salvar(anoEscolar);
 
 		arquivo.close();
 
@@ -82,13 +82,8 @@ public:
 		arquivo.ler(&mTitulo);
 		arquivo.ler(&mEditora);
 		arquivo.ler(&mAno);
-		arquivo.ler(&mPreco);
-
-		int tipo, anoEscolar;		
-		arquivo.ler(&tipo);
-
-		if(tipo == 1 || tipo == 3)
-			arquivo.ler(&anoEscolar);
+		arquivo.ler(&mPreco);		
+		arquivo.ler(&mTipo);
 
 		mAutores.clear();
 
@@ -106,11 +101,36 @@ public:
 
 			if(isbn == mIsbn){
 				Autor aux;
-				aux.buscarAutor(id);
+				aux.buscar(id);
 				mAutores.push_back(aux);
 			}
 
 		}
+
+	}
+	
+	bool buscar(int isbn){
+
+		Arquivo arquivo(getFile());
+		ifstream& iFile = arquivo.getIFile();
+		iFile.seekg(0);
+
+		while(iFile.good()){
+
+			ler(arquivo);
+
+			if (!iFile.good()) {
+				arquivo.close();
+				return false;
+			}
+
+			if (getIsbn() == isbn) break;
+
+		}
+
+		arquivo.close();
+
+		return true;
 
 	}
 	
@@ -130,6 +150,17 @@ public:
 	float getPreco(){return mPreco;}
 
 	char * getFile(){return (char *)"db/livro.flan";}
+
+	string getTipo(){
+
+		if(mTipo == 1)
+			return "Outro";
+		else if(mTipo == 2)
+			return "Escolar";
+		else
+			return "Literario";
+
+	}
 	
 };
 
@@ -139,12 +170,20 @@ private:
 	int mAnoEscolar;
 	
 public:
+	Escolar(){};
+
 	Escolar(int isbn, string titulo, string editora, int ano, float preco, int anoEscolar)
 		:Livro(isbn, titulo, editora, ano, preco), mAnoEscolar(anoEscolar){};
 	
 	void salvar(){
 
-		Livro::salvar(2, mAnoEscolar);
+		Arquivo arquivo(getFile());
+		Livro::salvar(2);
+
+		arquivo.salvar(mIsbn);
+		arquivo.salvar(mAnoEscolar);
+
+		arquivo.close();
 
 	}
 
@@ -152,25 +191,69 @@ public:
 
 		Livro::ler(arquivo);
 
-		arquivo.ler(&mAnoEscolar);
+		Arquivo escolar(getFile());
+
+		ifstream& iFile = escolar.getIFile();
+		iFile.seekg(0);
+
+		while(iFile.good()){
+			int isbn;
+			int anoEscolar;
+
+			escolar.ler(&isbn);
+			if (!iFile.good()) break; 
+			escolar.ler(&anoEscolar);
+
+			if(isbn == mIsbn){
+				mAnoEscolar = anoEscolar;
+				break;
+			}
+
+		}
+
+		escolar.close();
+
+	}
+	
+	void buscar(int isbn){
+
+		Livro::buscar(isbn);
+
+		Arquivo arquivo(getFile());
+		ifstream& iFile = arquivo.getIFile();
+
+		while(iFile.good()){
+
+			arquivo.ler(&isbn);
+			if (!iFile.good()) break;
+			arquivo.ler(&mAnoEscolar);
+
+			if (getIsbn() == isbn) break;
+
+		}
+
+		arquivo.close();
 
 	}
 	
 	void setAnoEscolar(int anoEscolar){mAnoEscolar = anoEscolar;}
 	int getAnoEscolar(){return mAnoEscolar;}
 
-
 	char * getFile(){return (char *)"db/escolar.flan";}
+
+	string getTipo(){return "Escolar";}
 	
 };
 
-class Ficcao : public Livro{
+class Literario : public Livro{
 
 private:
 	vector<Categoria> mCategorias;
 		
 public:
-	Ficcao(int isbn, string titulo, string editora, int ano, float preco)
+	Literario(){};
+
+	Literario(int isbn, string titulo, string editora, int ano, float preco)
 		:Livro(isbn, titulo, editora, ano, preco){};
 
 	void addCategoria(string categoria){
@@ -181,20 +264,18 @@ public:
 
 		Livro::salvar(3);
 
-		cout<<"teste"<<endl;
-
-		/*vector<Categoria>::iterator pos;
+		vector<Categoria>::iterator pos;
 
 		for (pos = mCategorias.begin(); pos != mCategorias.end(); pos++){
 			int id = (*pos).salvar();
 
-			Arquivo categoriaFiccao((char *)"db/categoriaFiccao.flan");
+			Arquivo categoriaLiterario((char *)"db/categorialiterario.flan");
 
-			categoriaFiccao.salvar(id);
-			categoriaFiccao.salvar(mIsbn);
+			categoriaLiterario.salvar(id);
+			categoriaLiterario.salvar(mIsbn);
 
-			categoriaFiccao.close();
-		}*/
+			categoriaLiterario.close();
+		}
 
 	}
 
@@ -202,33 +283,66 @@ public:
 
 		Livro::ler(arquivo);
 
-		//mAutores.clear();
+		mCategorias.clear();
 
-		/*Arquivo categoriaFiccao((char *)"db/categoriaFiccao.flan");
-		ifstream& iFile = categoriaFiccao.getIFile();
+		Arquivo categoriaLiterario((char *)"db/categorialiterario.flan");
+		ifstream& iFile = categoriaLiterario.getIFile();
 		iFile.seekg(0);
 
 		while(iFile.good()){
 			int id;
 			int isbn;
 
-			categoriaFiccao.ler(&id);
+			categoriaLiterario.ler(&id);
 			if (!iFile.good()) break; 
-			categoriaFiccao.ler(&isbn);
+			categoriaLiterario.ler(&isbn);
 
 			if(isbn == mIsbn){
 				Categoria aux;
-				aux.buscarCategoria(id);
+				aux.buscar(id);
 				mCategorias.push_back(aux);
 			}
 
-		}*/
+		}
+
+		categoriaLiterario.close();
+
+	}
+	
+	void buscar(int isbn){
+
+		Livro::buscar(isbn);
+
+		mCategorias.clear();
+
+		Arquivo categoriaLiterario((char *)"db/categorialiterario.flan");
+		ifstream& iFile = categoriaLiterario.getIFile();
+		iFile.seekg(0);
+
+		while(iFile.good()){
+			int id;
+			int isbn;
+
+			categoriaLiterario.ler(&id);
+			if (!iFile.good()) break; 
+			categoriaLiterario.ler(&isbn);
+
+			if(isbn == mIsbn){
+				Categoria aux;
+				aux.buscar(id);
+				mCategorias.push_back(aux);
+			}
+
+		}
+
+		categoriaLiterario.close();
+
 
 	}
 
 	vector<Categoria> getCategorias(){return mCategorias;}
 
-	char * getFile(){return (char *)"db/livro.flan";}
+	string getTipo(){return "Ficcao";}
 	
 };
 
